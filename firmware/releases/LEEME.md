@@ -11,6 +11,7 @@ arduino-cli y el core de ESP32 la primera vez (unos 500 MB).
 
 | Versión | Qué trae |
 |---|---|
+| 1.7.1 | `POST /api/golden` graba de verdad: `apiGoldenSet` no asignaba `channels` y no escribía nada |
 | 1.7.0 | Disparador con modo `avisar` (cuenta pulsaciones, mide la PC) y contador en `/api/status` |
 | 1.6.0 | La PC orquesta por HTTP; ESP-NOW solo aprovisiona WiFi |
 | 1.5.0 | Direcciones I²C y enables del MUX corregidos contra el esquemático |

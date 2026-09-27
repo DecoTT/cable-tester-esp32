@@ -224,7 +224,7 @@
 // -------------------------------------------------------------
 // Versión de firmware y de la API HTTP
 // -------------------------------------------------------------
-#define FW_VERSION   "1.7.0"
+#define FW_VERSION   "1.7.1"
 
 // Versión del contrato JSON de /api/*. Se incrementa SOLO cuando cambia de
 // forma incompatible: el software de PC debe comprobarla al conectarse.

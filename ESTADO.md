@@ -203,6 +203,45 @@ anterior a 1.7.0 el bridge las ignora sin dar error.
 
 ---
 
+## 3.6.1 Entrar por EQUIPO, no solo por producto
+
+Hasta ahora todo se entraba por el SKU: elegir producto y que el job decida qué
+equipos usa. Pero medio trabajo real es al revés —"voy a ver qué le pasa a la
+8744", "a esta le monto otro job"— y por la ruta del SKU eso obliga a adivinar
+qué producto toca **antes** de poder mirar el equipo.
+
+Hay un **selector de equipo** en la cabecera, al lado del operador. Fijar uno no
+cambia Pruebas (ahí manda el job, como siempre): fija sobre qué equipo trabajan
+Diagnóstico y el avanzado.
+
+### Montar un job EN el equipo — y el bug que lo impedía
+
+`Configuración → ⋮ → Ver detalles` muestra el golden grabado en la NVS del
+ESP32 y permite cambiarlo. Con **"dejarlo listo para trabajar solo"** además
+pone el disparador en modo `local`: golden dentro + botón que mide por su
+cuenta.
+
+> **`POST /api/golden` no grababa nada, desde siempre.** `apiGoldenSet` nunca
+> asignaba `m.channels`, y `mapSaveGolden` sale por `if (!m.valid ||
+> !m.channels) return false` sin escribir. Respondía `ok:false` con `crc:0` y el
+> equipo se quedaba igual. No se notó porque la PC orquesta y nadie usaba esa
+> ruta. Corregido en **1.7.1**.
+
+**El CRC se calcula en el bridge**, no se acepta el que devuelve el equipo:
+comparar su respuesta consigo misma no comprueba nada — si grabara mal la mitad
+de los bytes, devolvería el CRC de lo que grabó y todo parecería correcto.
+
+**Verificado sin PC (2026-09-27):** golden de MPG-IN3 montado en la 8744 (crc
+65122, calculado aquí = el del equipo), disparador en `local`, y el equipo
+juzgando la pieza **él solo: PASS en 556 ms**. Con el golden equivocado montado
+a propósito (MPG-IN1 sobre el arnés de MPG-IN3) dio FAIL con las 7 líneas
+esperadas abiertas — que es lo que tiene que pasar.
+
+> Un arnés de más de un equipo no se puede montar así: el modo autónomo mide con
+> una sola unidad. La app lo rechaza antes de intentarlo.
+
+---
+
 ## 3.7 Estaciones — varios puestos en un bridge
 
 Un **puesto de trabajo es un equipo con botón**, y lleva **su** producto y **su**

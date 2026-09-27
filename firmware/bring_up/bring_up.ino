@@ -1471,6 +1471,13 @@ void apiGoldenSet(const String& body, Print& out) {
     }
 
     m.net_count = mx;
+    // channels NUNCA se asignaba, y mapSaveGolden sale por "if (!m.valid ||
+    // !m.channels) return false" sin grabar nada: POST /api/golden respondia
+    // ok:false con crc:0 y el equipo se quedaba sin golden.
+    //
+    // No se noto porque la PC orquesta y nadie usaba esta ruta. Aparecio al
+    // montar un job EN el equipo para que pueda trabajar sin PC.
+    m.channels  = count;
     m.valid     = true;
 
     bool ok = mapSaveGolden(m, job.length() ? job : String("job"));
