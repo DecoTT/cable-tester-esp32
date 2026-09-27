@@ -1,0 +1,26 @@
+# Cadena de compilación descargada, no código del proyecto.
+# build.py se la baja sola la primera vez (~37 MB).
+tools/_arduino-cli/
+
+# Artefactos de compilación. El binario que se distribuye vive en
+# firmware/releases/, versionado a mano al publicar.
+tools/build/
+firmware/bring_up/build/
+
+# Entorno de Python: lo crea setup.bat / build.py.
+.venv/
+__pycache__/
+*.pyc
+
+# Goldens: son el cableado de UN cliente y de SU fixture, no del producto.
+# Viajan en la exportación de la app, nunca aquí.
+goldens/
+
+# Ajustes y credenciales de la máquina.
+*.log
+.env
+.env.local
+tools/ct_host.txt
+
+.DS_Store
+Thumbs.db

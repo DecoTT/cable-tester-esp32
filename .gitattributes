@@ -1,0 +1,6 @@
+# Los .bat los ejecuta cmd.exe en Windows: siempre CRLF.
+*.bat text eol=crlf
+
+*.png binary
+*.bin binary
+*.pdf binary
