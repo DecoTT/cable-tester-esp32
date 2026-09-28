@@ -416,6 +416,13 @@ faltaba un hilo**. La comprobación de resistencia aprobó el segundo.
 
 ## 6. Pendiente — solo lo puede hacer el usuario
 
+0. **El arnés grande montado ahora mismo da 45 conexiones, no 46.**
+   Barrido libre del 2026-09-28 sobre 2898 + 700C + 424C (huella `571f5a4d`):
+   45 parejas y **6 canales libres** — `M.J21`, `L1.J24`, `L2.J26`, `L2.J28`,
+   `L2.J30`, `L2.J_SP`. Con 46 conexiones deberían quedar 4 libres. Falta una
+   línea, y las 45 que hay salen todas *unidas* en el osciloscopio, así que no
+   es un contacto flojo: es un hilo que no está.
+
 1. **Los códigos de SKU reales.** Los `TODO-` salen marcados en ámbar en la UI.
    Están en `../CableTester32App/bridge/seed.js`.
 2. **Reparar los dos golden del arnés grande**: al 1 le falta rehacer el crimp
