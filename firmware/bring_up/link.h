@@ -79,6 +79,14 @@ uint32_t linkPairingRemainingMs();
 
 // --- Operación ---
 bool linkPushCreds(const String& ssid, const String& pass);  // master → todos los hijos
+
+// Difunde credenciales a CUALQUIER CableTester que este escuchando, sin
+// emparejar. Es el aprovisionamiento por lote del portal: se configura uno por
+// el movil y ese se lo pasa a los demas.
+//
+// Solo lo llama el portal, y solo si el operador marco la casilla: no hay
+// difusion automatica. Ver wifi_portal.cpp.
+bool linkBroadcastCreds(const String& ssid, const String& pass, uint8_t repeticiones = 3);
 bool linkPing();                                             // a todos los peers
 void linkPrintInfo(Print& out);
 

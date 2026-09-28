@@ -6,6 +6,7 @@
 #include <ESPmDNS.h>
 #include <esp_mac.h>
 #include "config.h"
+#include "link.h"     // difusion de credenciales al resto de equipos
 
 #define AP_BASE   "CableTester32"
 #define PREF_NS   "wifi"
@@ -78,6 +79,12 @@ button:hover{background:#b4d0fa}
 <input type='password' name='pass' id='pw' placeholder='dejar vacío si es abierta' style='padding-right:38px'>
 <button type='button' onclick='var i=document.getElementById("pw");i.type=i.type==="password"?"text":"password"' style='position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:#89b4fa;cursor:pointer;font-size:16px;padding:0;line-height:1'>👁</button>
 </div>
+<label style='display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer'>
+  <input type='checkbox' name='todos' value='1' style='width:auto;margin:0'>
+  <span style='color:#cdd6f4;font-size:13px'>Mandar esta red a los demas CableTester</span>
+</label>
+<p class='note' style='margin-top:4px'>Solo a los que esten ahora en modo AP esperando
+configuracion. Los que ya esten conectados a una red NO se tocan.</p>
 <button type='submit'>Guardar y reiniciar</button>
 </form>
 <p class='note'>Tras guardar el dispositivo se reinicia y se conecta a tu router.</p>
@@ -92,6 +99,7 @@ display:flex;justify-content:center;align-items:center;height:100vh;margin:0}
 <body><div class='msg'>
 <h2>✅ Guardado</h2>
 <p>Reiniciando y conectando a la red...</p>
+{{EXTRA}}
 <p style='color:#6c7086;font-size:13px'>Busca el dispositivo en tu router.</p>
 </div></body></html>)";
 
@@ -111,15 +119,30 @@ static void _handleRoot() {
 static void _handleSave() {
     String ssid = _srv.hasArg("ssid") ? _srv.arg("ssid") : "";
     String pass = _srv.hasArg("pass") ? _srv.arg("pass") : "";
-    if (ssid.length()) {
-        _saveStr(PREF_SSID, ssid);
-        _saveStr(PREF_PASS, pass);
-        _srv.send(200, "text/html", FPSTR(SAVED_HTML));
-        delay(1500);
-        ESP.restart();
-    } else {
-        _srv.send(400, "text/plain", "SSID vacio");
-    }
+    bool  todos = _srv.hasArg("todos");
+    if (!ssid.length()) { _srv.send(400, "text/plain", "SSID vacio"); return; }
+
+    _saveStr(PREF_SSID, ssid);
+    _saveStr(PREF_PASS, pass);
+
+    // La difusion va ANTES de responder y de reiniciar: al reiniciar esta
+    // unidad se lleva su AP consigo, y el movil que la estaba configurando se
+    // queda sin red. Si se mandara despues, no habria despues.
+    //
+    // Y solo si el operador marco la casilla. Difundir credenciales "por si
+    // acaso" cada vez que alguien configura un equipo es reconfigurar en
+    // silencio equipos que nadie ha tocado.
+    bool difundido = false;
+    if (todos) difundido = linkBroadcastCreds(ssid, pass);
+
+    String page = FPSTR(SAVED_HTML);
+    page.replace("{{EXTRA}}", todos
+        ? (difundido ? "<p style='color:#a6e3a1;font-size:13px'>Enviada tambien a los demas equipos en modo AP.</p>"
+                     : "<p style='color:#f9e2af;font-size:13px'>No se pudo difundir al resto: configuralos uno a uno.</p>")
+        : "");
+    _srv.send(200, "text/html", page);
+    delay(1500);
+    ESP.restart();
 }
 
 static void _handleNotFound() {
@@ -171,7 +194,13 @@ void wifiPortalBegin() {
     Serial.println("[WiFi] Sin red guardada. Levantando AP portal...");
     WiFi.mode(WIFI_AP);
     _buildApSsid();
-    WiFi.softAP(_ap_ssid);
+    // Canal 1 FIJO, no el que le toque.
+    //
+    // ESP-NOW solo alcanza a quien este en el mismo canal, y el
+    // aprovisionamiento por lote depende de eso: todas las unidades sin red
+    // levantan su AP aqui, asi que todas quedan en el 1 y se oyen entre si.
+    // Con el canal por defecto de la libreria eso no esta garantizado.
+    WiFi.softAP(_ap_ssid, nullptr, 1);
     Serial.printf("[WiFi] AP '%s' activo. IP: %s\n",
                   _ap_ssid, WiFi.softAPIP().toString().c_str());
 

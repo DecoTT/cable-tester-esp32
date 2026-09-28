@@ -968,6 +968,63 @@ bool linkPushCreds(const String& ssid, const String& pass) {
     return all;
 }
 
+/**
+ * Difunde credenciales a cualquier CableTester que este escuchando.
+ *
+ * POR QUE DIFUSION Y NO A LOS PEERS
+ *
+ * linkPushCreds() manda a los peers EMPAREJADOS, y en el caso que importa no
+ * hay ninguno: se acaba de mover el equipo a otra planta, ninguna unidad
+ * encuentra su red, todas abren su portal y ninguna conoce a las demas. Con
+ * difusion basta configurar una por el movil.
+ *
+ * QUIEN LA ACEPTA — y quien no
+ *
+ * El receptor solo aplica credenciales si esta en rol SLAVE, que es el estado
+ * de una unidad SIN red (portal o esperando master). Una unidad que ya esta
+ * conectada y trabajando es MASTER y las ignora: nadie puede sacarla de su red
+ * con una difusion.
+ *
+ * Se manda varias veces a proposito: ESP-NOW no confirma la difusion a nivel
+ * de aplicacion, y el receptor puede estar ocupado sirviendo su propio portal.
+ * Tres envios espaciados cuestan medio segundo y evitan tener que ir equipo por
+ * equipo si se pierde uno.
+ *
+ * LIMITE: solo alcanza a quien este en el MISMO CANAL. Con todas en modo AP eso
+ * se cumple porque el portal fija el canal 1 (ver wifi_portal.cpp).
+ */
+bool linkBroadcastCreds(const String& ssid, const String& pass, uint8_t repeticiones) {
+    if (!_inited) return false;
+    if (!ssid.length() || ssid.length() > 32 || pass.length() > 64) return false;
+
+    static const uint8_t DIFUSION[6] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+    // La difusion NO puede ir cifrada: ESP-NOW solo cifra unicast.
+    //
+    // El peer se registra con ifidx STA aunque la unidad este sirviendo su
+    // portal en modo AP: al levantar el softAP la libreria pasa a AP_STA, y en
+    // AP_STA las dos interfaces COMPARTEN la unica radio y por tanto el canal
+    // del AP (el 1, que fija el portal). Por eso el envio sale en el canal en
+    // el que escuchan las demas.
+    if (!_registerPeer(DIFUSION, false)) return false;
+
+    uint8_t buf[200];
+    uint8_t i = 0;
+    buf[i++] = (uint8_t)ssid.length();
+    memcpy(&buf[i], ssid.c_str(), ssid.length()); i += ssid.length();
+    buf[i++] = (uint8_t)pass.length();
+    memcpy(&buf[i], pass.c_str(), pass.length()); i += pass.length();
+
+    bool alguno = false;
+    for (uint8_t r = 0; r < (repeticiones ? repeticiones : 1); r++) {
+        alguno |= _send(DIFUSION, LMSG_CREDS, buf, i);
+        delay(150);
+    }
+    Serial.printf("[LINK] Credenciales difundidas para '%s' (%u envios).\n",
+                  ssid.c_str(), (unsigned)(repeticiones ? repeticiones : 1));
+    esp_now_del_peer(DIFUSION);
+    return alguno;
+}
+
 bool linkPing() {
     if (!_inited || !_peer_count) return false;
     bool all = true;

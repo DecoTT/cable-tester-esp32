@@ -475,6 +475,14 @@ void loop() {
     // Portal WiFi (si no hay red guardada)
     if (wifiIsPortalActive()) {
         wifiPortalLoop();
+        // linkLoop() TAMBIEN con el portal abierto.
+        //
+        // Sin esto, una unidad en modo AP recibe las credenciales por ESP-NOW
+        // —el callback las deja en _creds_pending— y NADIE las aplica, porque
+        // quien lo hace es linkLoop(). Se quedaba en el portal para siempre y
+        // el aprovisionamiento por lote no podia funcionar: justo el caso de
+        // mover el equipo a otra planta, que es cuando hace falta.
+        linkLoop();
         return;
     }
 

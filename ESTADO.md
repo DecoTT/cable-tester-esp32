@@ -52,7 +52,7 @@ orden **no significa lo mismo**. Se guarda dentro del job.
 | `424C` | 192.168.1.102 | Tester #1 — posición **L2** |
 | `8744` | 192.168.1.96 | Tester #2 — socket amarillo |
 
-Las cuatro en **firmware v1.7.0**, todas actualizables por **OTA**:
+Las cuatro en **firmware v1.8.0**, todas actualizables por **OTA**:
 
 ```bash
 python tools/ct.py --ota 192.168.1.90
@@ -304,6 +304,57 @@ Dos límites del modo autónomo:
   §1), así que un arnés de 96 canales no se puede probar sin PC.
 - **Sin trazabilidad.** Ni lote, ni etiqueta, ni quién lo probó. Sirve para no
   parar la línea si se cae la PC, no para producir a ciegas.
+
+---
+
+## 3.9 Mover los equipos a otra planta — WiFi por lote
+
+Al llegar a planta ninguna unidad encuentra la red de aquí, así que **todas
+abren su portal**. El SSID del AP ya lleva diferenciador —`CableTester32-8744`,
+los dos últimos bytes de la MAC, el mismo id que se ve en la app— así que desde
+el móvil se sabe a cuál te conectas.
+
+### El procedimiento
+
+1. Móvil → red `CableTester32-<id>` de **cualquiera** de ellas.
+2. Se abre el portal solo (captivo). Elegir la red de la planta y la clave.
+3. Marcar **"Mandar esta red a los demás CableTester"**.
+4. Guardar. Esa unidad difunde las credenciales, se reinicia y se conecta; las
+   demás las reciben, las guardan y se reinician solas.
+
+### Los controles, y por qué cada uno
+
+| Control | Qué evita |
+|---|---|
+| Solo difunde si el operador **marca la casilla** | Reconfigurar en silencio equipos que nadie ha tocado |
+| Solo la aplican las unidades **sin red** (rol SLAVE: portal o esperando) | Que una difusión saque de su red a un equipo que está trabajando |
+| Se manda **antes** de responder al móvil | Al reiniciar, esta unidad se lleva su AP y ya no hay "después" |
+| El portal fija el **canal 1** | ESP-NOW solo alcanza a quien esté en el mismo canal. Con el canal por defecto no está garantizado que coincidan |
+
+> En modo AP la librería pasa a AP_STA, y las dos interfaces **comparten la
+> única radio** y por tanto el canal del AP. Por eso el envío por la interfaz
+> STA sale en el canal 1, que es donde escuchan las demás.
+
+### El fallo que lo hacía imposible (corregido en 1.8.0)
+
+Con el portal abierto, `loop()` hacía `wifiPortalLoop(); return;` y **nunca
+llamaba a `linkLoop()`**. Una unidad en modo AP recibía las credenciales por
+ESP-NOW —el callback las dejaba en `_creds_pending`— y nadie las aplicaba: se
+quedaba en el portal para siempre. El aprovisionamiento por lote no podía
+funcionar justo en el caso para el que existe.
+
+### ⚠️ Sin verificar en hardware
+
+Compilado y razonado, **no probado**: hace falta tener dos unidades en modo AP a
+la vez y un móvil, y desde la PC no se puede provocar sin dejarlas sin red.
+Cuando se pruebe, lo que hay que mirar:
+
+- Que las otras unidades salgan del portal **solas**, sin tocarlas.
+- Que una unidad **ya conectada** ignore la difusión (rol MASTER).
+- Que sin marcar la casilla **no se difunda nada**.
+
+Si la difusión no llega, el portal lo dice y siempre queda configurarlas una a
+una — no se pierde nada, solo tiempo.
 
 ---
 
