@@ -469,7 +469,59 @@ estimación corta vuelve a paginar. Cada ajuste deja un aviso en el log.
 
 ---
 
-## 14. LEDs — el mapa de bits estaba invertido
+## 14. El recorrido de socket y el fantasma, otra vez
+
+**Medido en planta (2026-09-28)**, recorriendo el socket del arnés de 45 líneas:
+
+| Conector | Esperados | Detectados |
+|---|---|---|
+| CN12 | 8 | **18** |
+| CN14 | 10 | **14** |
+| CN9 | 8 | **11** |
+| CN11 | 8 | **0** |
+| CN10 | 8 | 4 |
+
+Tocando un pin se encendían hasta **seis canales a la vez**. Los tres síntomas
+—sobran, faltan, y uno que no detecta nada— son **la misma causa**: el
+acoplamiento del §5, y un detalle del diseño que lo amplifica.
+
+### Por qué se comía conectores enteros
+
+Un canal detectado queda marcado como *visto* para no repetirlo. Cuando un
+fantasma se anota, **gasta el canal**: el pin de verdad ya no se puede
+registrar. Por eso CN11 dio **0 de 8** — sus ocho canales ya estaban gastados
+por fantasmas de CN12 y CN14.
+
+### Por qué la doble muestra NO bastaba aquí
+
+El recorrido escuchaba con **una sola muestra**, mientras el barrido usa dos
+(`sample2`). Eso ya era un error. Pero con la punta **sostenida** la doble
+muestra tampoco alcanza: un vecino acoplado se carga y se lee alto en las dos.
+
+### El filtro que sí distingue: la tensión
+
+Del barrido de acoplamiento del §12, con un canal excitado:
+
+```
+M.J16   3300 mV   <- conectado de verdad
+M.J01   2417 mV   <- acoplamiento
+M.J17   2391 mV   <- acoplamiento
+```
+
+**Un pin con la punta encima está a 3,3 V; un fantasma se queda por debajo.**
+Ahora cada candidato se confirma leyendo su ADC y se exige **≥ 2900 mV**, que
+deja margen a los dos lados. Cuesta una lectura por candidato, y solo se paga
+cuando hay candidato.
+
+Esto funciona porque `sample` con `drive_ch = -1` deja **todos los canales como
+entradas**: la punta sostiene el nodo y el ADC lo ve tal cual.
+
+Los descartes se muestran en pantalla con su tensión. Un filtro silencioso
+parecería que la app no ve nada.
+
+---
+
+## 15. LEDs — el mapa de bits estaba invertido
 
 **Corregido en firmware v1.4.0 (2026-09-26).**
 
