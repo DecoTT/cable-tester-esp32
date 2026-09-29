@@ -541,6 +541,41 @@ entradas**: la punta sostiene el nodo y el ADC lo ve tal cual.
 Los descartes se muestran en pantalla con su tensión. Un filtro silencioso
 parecería que la app no ve nada.
 
+### Media tensión NO significa acoplamiento
+
+El umbral por sí solo tiene un agujero: **un vecino unido por una resistencia da
+también media tensión**, y eso no es un fantasma — es un defecto. Descartarlo en
+silencio sería esconder justo lo que se busca.
+
+Lo que los separa es que el acoplamiento es **capacitivo: no hay camino de
+continua**. Así que el candidato dudoso se fuerza a masa y se mira si puede
+bajarlo. Y la tensión que queda dice **cuánto vale la unión**, porque el nodo es
+un divisor con los 680 Ω del propio canal:
+
+```
+R = 680 · (3,3/V − 1)
+```
+
+**Validado en los tres regímenes (2026-09-29):**
+
+| Caso | En reposo | Forzado a masa | Veredicto |
+|---|---|---|---|
+| Punta de 3,3 V (fuente rígida) | 3300 mV | **3300 mV** | unido, R ≈ 0 Ω |
+| Enlace real a través de 680 Ω | 3300 mV | **1778 mV** | unido, R ≈ 582 Ω |
+| Vecino acoplado | 2129 mV | **3 mV** | acoplamiento |
+
+3300 contra 3 mV: la discriminación es total, sin zona gris.
+
+El 582 Ω del caso intermedio es correcto — ahí la "punta" era un canal
+excitando a través de sus propios 680 Ω, así que la cuenta mide ese resistor.
+Con una punta real, que no lleva nada en serie, el número es el del puente.
+
+> **El mismo error, en vivo.** Un barrido hecho a mano con un umbral ingenuo de
+> 2000 mV dio `J01 → J17 y J18`. Con el test: `J17` forzado a masa se queda en
+> 1777 mV (unido), `J18` cae a 3 mV (nunca estuvo conectado). El barrido real de
+> la app no cae en esto porque usa doble muestra; el que se equivocó fue el
+> script de una línea.
+
 ### Y un tercer fallo, del mismo patrón: escuchar antes de abrir el conector
 
 La sesión empieza a escuchar al pulsar **Escuchar**, y el conector se abre
