@@ -498,6 +498,28 @@ El recorrido escuchaba con **una sola muestra**, mientras el barrido usa dos
 (`sample2`). Eso ya era un error. Pero con la punta **sostenida** la doble
 muestra tampoco alcanza: un vecino acoplado se carga y se lee alto en las dos.
 
+### Medido con una punta real (2026-09-29)
+
+Con los sockets puestos, sin arnés, **ningún canal en reposo pasa de 1764 mV**
+(media 164 / 234 / 529 mV por equipo) y **0 bits fantasma en 120 sondeos**: sin
+tensión aplicada no hay nada que filtrar.
+
+Con la punta de 3,3 V en un pin de CN14, el gradiente de acoplamiento se ve
+entero:
+
+```
+L2.J03   3300 mV   <- la punta
+L2.J04   2133 mV   <- vecino acoplado
+L2.J05   1041 mV
+L2.J06    697 mV
+```
+
+El umbral de **2900 mV** cae en el hueco, con más de 750 mV de margen a cada
+lado. Y `L2.J04` a 2133 mV explica el resto: está **a un pelo** del umbral
+lógico del TCA9535 (~2,3 V). En ese pin no llegó a cruzarlo y el muestreo
+digital ya lo descartó; en conectores con tiradas más largas en paralelo sí
+cruza, y entonces solo la tensión lo separa.
+
 ### El filtro que sí distingue: la tensión
 
 Del barrido de acoplamiento del §12, con un canal excitado:
@@ -518,6 +540,18 @@ entradas**: la punta sostiene el nodo y el ADC lo ve tal cual.
 
 Los descartes se muestran en pantalla con su tensión. Un filtro silencioso
 parecería que la app no ve nada.
+
+### Y un tercer fallo, del mismo patrón: escuchar antes de abrir el conector
+
+La sesión empieza a escuchar al pulsar **Escuchar**, y el conector se abre
+después — lo que se tarda en teclear su nombre. Si en ese hueco la punta estaba
+tocando algo, el canal se marcaba como visto y quedaba **gastado**: al abrir el
+conector ya no se podía detectar nunca.
+
+**Reproducido:** punta puesta en CN14 antes de abrirlo → la sesión dio **0 de
+10** con el canal correcto a 3300 mV. Ahora, sin conector abierto no se anota
+nada y se avisa en pantalla; con el conector abierto, el mismo pin entra a la
+primera.
 
 ---
 
