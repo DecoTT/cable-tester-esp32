@@ -639,3 +639,147 @@ Los 32 canales se reparten en 5 zonas: **7, 7, 6, 6, 6**.
 Para encender LEDs desde la PC hay una op dedicada que **preserva la selección
 de MUX**. Escribir el registro de 16 bits entero con `sr_wr` la borraría, y las
 medidas analógicas pasarían a leer el canal equivocado **sin dar ningún error**.
+
+## 16. El contacto que chisporrotea — 2026-09-29
+
+Dos arneses de **rechazo de cliente** (hilo sólido en vez de trenzado, defecto ya
+corregido en producción) sirvieron para caracterizar el banco con defectos reales.
+Todo lo de abajo está medido, no estimado.
+
+### 16.1 Repetibilidad de la medida de resistencia
+
+Tres pasadas seguidas **sin tocar nada**, 44 líneas:
+
+| | |
+|---|---|
+| rango mediano entre pasadas | **0,45 Ω** |
+| p90 | **1,54 Ω** |
+
+**Cualquier diferencia menor de ~2 Ω entre dos medidas es ruido propio**, no la
+pieza. Es el suelo que justifica el mínimo de 3 Ω en los límites por línea: un
+margen por debajo de la repetibilidad avisaría por ruido nuestro.
+
+### 16.2 El sesgo entre sentidos es error de ganancia por unidad
+
+`rBidir` mide cada línea en los dos sentidos y promedia. El desacuerdo entre
+sentidos es **enorme y sistemático** — no aleatorio:
+
+| par de unidades | sesgo |
+|---|---|
+| M ↔ L1 | +37…+39 Ω |
+| L1 ↔ L2 | −26…−31 Ω |
+| M ↔ L2 | +12 Ω |
+
+Cuadran entre sí: `(M−L1) + (L1−L2) = +10`, contra `+12` medido en `M−L2`.
+Es decir, **cada ESP32 tiene su propio error de ganancia de ADC** y el sesgo es
+la diferencia entre los dos que participan. Encaja con el +5,88 % ya
+caracterizado en §3.
+
+Consecuencia: una línea de 0,6 Ω mide ~39 Ω en un sentido y ~−37 Ω en el otro.
+**El promedio bidireccional es obligatorio**; una medida de un solo sentido no
+vale para nada.
+
+### 16.3 El tiempo de asentamiento NO influye
+
+Hipótesis razonable: el barrido conmuta demasiado rápido y por eso salen
+aperturas falsas. **Descartada con medida.** Cuatro barridos, con el control
+intercalado para no confundir mejora con deriva del contacto:
+
+| asentamiento | resultado |
+|---|---|
+| 1 ms (actual) | 43/46 — huella `5a92a5a1` |
+| 10 ms (×10) | 43/46 — huella `5a92a5a1` |
+| 1 ms (control) | 43/46 — huella `5a92a5a1` |
+| 20 ms (×20) | 43/46 — huella `5a92a5a1` |
+
+**La misma huella exacta las cuatro veces.** Coherente con la física: 680 Ω con
+decenas de pF da constantes de tiempo en microsegundos.
+
+`barrer()` acepta `settleUs` y la ruta `/api/medida/barrido` acepta `settle_us`,
+para poder repetir esta comprobación sin tocar código. También acepta
+`invertido` para barrer de 95 a 0: **el sentido tampoco cambia nada** (misma
+huella en directo, inverso y directo otra vez).
+
+### 16.4 Dos poblaciones de defecto, y solo una es detectable de una pasada
+
+El osciloscopio lento separó lo que el barrido mete en el mismo saco:
+
+| línea | alto medio | desviación | qué es |
+|---|---|---|---|
+| CN10.4 ↔ CN15.4 | 128 mV | 84 | **abierta** |
+| CN9.6 ↔ CN13.5 | 181 mV | 143 | **abierta** |
+| CN7.8 ↔ CN14.3 | 155 mV | 138 | **abierta** |
+| CN10.10 ↔ CN15.10 | 3080 mV | **823** | **chisporrotea** |
+| CN12.6 ↔ CN16.3 | 3159 mV | **610** | chisporrotea |
+| CN12.5 ↔ CN16.4 | 2987 mV | **940** | chisporrotea |
+| CN7.6 ↔ CN14.5 | 3046 mV | **835** | chisporrotea |
+| CN9.1 ↔ CN13.10 | 3205 mV | **509** | chisporrotea — **y el barrido la aprobó** |
+
+Las tres abiertas salieron 4/4 en barridos repetidos. Las que chisporrotean
+aparecen y desaparecen entre pasadas: **2, luego 9, luego 3 aperturas**, sin
+tocar la pieza. No es que el arnés cambiara; es que nunca hubo un estado fijo.
+
+**Media alta con desviación alta no puede ser acoplamiento**: el acoplamiento es
+capacitivo y no puede sostener 3 V, no hay camino de continua que lo alimente.
+Lo único que lo produce es un contacto que se abre y se cierra mientras se mide.
+Por eso `avanzado.js` clasifica ahora `intermitente` aparte de `al_aire`: la
+acción es la opuesta — al aire es *falta el hilo*, intermitente es *la unión no
+retiene*.
+
+### 16.5 Por qué el barrido se equivoca en las dos direcciones
+
+`barrer()` exige **cuatro lecturas consistentes** por canal: alto en las dos
+muestras (AND) y bajo en las dos (NOR). Es la protección anti-fantasma y
+funciona — pero está **sesgada hacia declarar abierto**: una sola lectura
+espuria en la fase baja tumba la línea.
+
+Con un contacto estable es correcto. Con uno que chisporrotea produce
+**falsos abiertos** (`CN7.1 ↔ CN14.10`: 3300 mV con desviación 0 en el
+osciloscopio, abierta en el barrido) y **falsos aprobados** (`CN9.1 ↔ CN13.10`).
+
+> **Un contacto intermitente no se puede detectar con una sola pasada, ni
+> haciéndola más lenta.** Hace falta repetir y comparar. Dos pasadas suben el
+> ciclo de 26 s a ~55 s y convierten `INESTABLE` en un veredicto propio.
+
+### 16.6 El defecto físico: la terminal no llega, no el hilo
+
+Confirmado con multímetro por el usuario: `CN7.3 ↔ CN14.8` daba **3 Ω** y
+`CN7.8 ↔ CN14.3` **0,1 Ω** midiendo con la punta metida en la terminal — y el
+tester las veía abiertas con el conector acoplado.
+
+El hilo y la terminal conducen; **falla el acoplamiento**. Terminal retrasada en
+su alojamiento: si el *lock* no engancha, retrocede al insertar el conector y el
+pin macho no la alcanza. Una prueba de continuidad en la terminal no lo ve
+nunca, porque la punta llega hasta donde el conector no llega.
+
+**Este es el defecto que justifica el tester.** En el arnés 2 el tester señaló
+`CN9.4 ↔ CN13.7`, el multímetro dio OL en ambos extremos, se reasentó y marcó.
+
+### 16.7 Por qué el barrido lee las unidades EN SERIE (2026-09-30)
+
+El barrido tarda ~24 s y casi todo es **latencia de red**, no medida: 96 canales
+× 2 niveles × (1 petición para excitar + 3 para leer) = **768 peticiones**, a
+~31 ms cada una.
+
+Leer las tres unidades con `Promise.all` baja el barrido a **12 s** — y lo
+rompe. Tres pasadas seguidas sobre la misma pieza, que un momento antes daba
+**una sola apertura dos veces seguidas**:
+
+| pasada | tiempo | aperturas |
+|---|---|---|
+| 1 | 12,8 s | 8 |
+| 2 | 13,0 s | 23 |
+| 3 | 12,1 s | 14 |
+
+El comentario del código decía *"el desfase entre ellas da igual porque el nivel
+se mantiene"*, y es cierto **entre las que solo escuchan** — pero no incluye al
+que excita. El dueño reconfigura sus propios pines dentro de su `sample`, y en
+paralelo las otras leen durante esa ventana en la que la línea no está
+sostenida.
+
+> Cualquier intento de acelerar el barrido tiene que **dejar fuera al dueño** y
+> comprobarse contra una pieza de resultado conocido. Un tester rápido que
+> miente es peor que no tener tester.
+
+Consecuencia práctica: **dos pasadas cuestan ~50 s**, no hay atajo. Si eso es
+demasiado para la línea, `INESTABLE` va en el modo avanzado y no en cada ciclo.

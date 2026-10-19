@@ -1,4 +1,4 @@
-# Estado del proyecto — 2026-09-26
+# Estado del proyecto — 2026-10-19
 
 Punto de partida para retomar sin releer el historial. Lo que **no** está aquí,
 está en [docs/CARACTERIZACION.md](docs/CARACTERIZACION.md), que es el documento
@@ -414,22 +414,79 @@ faltaba un hilo**. La comprobación de resistencia aprobó el segundo.
 
 ---
 
+## 5.1 Las unidades se resuelven por MAC, no por IP (2026-10-19)
+
+**Paso de verdad en Guadalajara.** El job de MPG-A1 guardaba las IPs de la red
+del taller (`192.168.1.90/.101/.102`). Allá el módem repartió `.73/.74/.75`. El
+mDNS encontraba los tres equipos —se ven anunciándose en la consola del
+bridge— y aun así la prueba fallaba:
+
+```
+ERROR 143.0 s
+U0 (192.168.1.90) no responde tras 3 intentos: The operation was aborted due to timeout
+```
+
+Dos minutos y medio de timeouts para decir algo que el bridge ya sabía.
+
+Lo que no cambia nunca es la **MAC**. Ahora el job identifica sus unidades por
+MAC y la IP se resuelve en cada uso ([bridge/hosts.js](../CableTester32App/bridge/hosts.js)):
+
+1. **mDNS** — la de ahora mismo.
+2. **`tester_units.ip`** — la última vista. Se refresca en cada anuncio del
+   mDNS; si no, envejecería y el plan B sería inútil.
+
+El **orden se conserva**: define si una unidad es M, L1 o L2 y con eso cómo se
+llaman sus canales. Resolver por MAC no puede reordenarlas.
+
+Si falta alguna, se dice **por nombre y posición** en vez de esperar al
+timeout: *"No encuentro en la red: 700C (L1), 424C (L2)"*.
+
+Los jobs anteriores a esto llevaban `tester_macs` vacío; se rellenaron desde
+`tester_units`. Un job sin MACs sigue funcionando por IP, pero no está
+protegido contra un cambio de red.
+
+---
+
 ## 6. Pendiente — solo lo puede hacer el usuario
 
-0. **El arnés grande montado ahora mismo da 45 conexiones, no 46.**
-   Barrido libre del 2026-09-28 sobre 2898 + 700C + 424C (huella `571f5a4d`):
-   45 parejas y **6 canales libres** — `M.J21`, `L1.J24`, `L2.J26`, `L2.J28`,
-   `L2.J30`, `L2.J_SP`. Con 46 conexiones deberían quedar 4 libres. Falta una
-   línea, y las 45 que hay salen todas *unidas* en el osciloscopio, así que no
-   es un contacto flojo: es un hilo que no está.
+0. **RESUELTO (2026-09-29): la línea 46 era `CN9.4 ↔ CN13.7`.** No faltaba
+   ningún hilo: era un contacto que a veces hace y a veces no. Apareció al
+   recorrer el socket y capturar el fixture, y volvió a fallar en el **segundo**
+   arnés, donde el usuario confirmó con multímetro OL en ambos extremos,
+   reasentó la terminal y marcó.
+
+0.1. **Reparar el arnés 1.** Tres contactos muertos, estables en barridos
+   repetidos: `CN10.4 ↔ CN15.4`, `CN9.6 ↔ CN13.5`, `CN7.8 ↔ CN14.3`. Y al menos
+   cinco que **chisporrotean** (`CN10.10↔CN15.10`, `CN12.6↔CN16.3`,
+   `CN12.5↔CN16.4`, `CN7.6↔CN14.5`, `CN9.1↔CN13.10`), que el barrido aprueba o
+   rechaza según el instante. El hilo está bien: falla el acoplamiento de la
+   terminal. Ver [CARACTERIZACION §16](docs/CARACTERIZACION.md).
+
+0.2. **Decidir si producción hace una pasada o dos.** Una no puede detectar un
+   contacto intermitente — está medido, y no se arregla bajando la velocidad.
+   Dos pasadas: 26 s → ~55 s de ciclo, y `INESTABLE` pasa a ser un veredicto
+   propio con su propia recomendación (*reasienta la terminal*, no *falta el
+   hilo*).
+
+0.3. **Comprobar el socket con la punta.** Los fallos del arnés 1 crecieron de
+   2 a 9 en un solo reacoplamiento. Nadie ha verificado el lado del socket desde
+   que se mapeó — entonces los diez conectores daban su cuenta exacta. Con el
+   arnés fuera, recorrer los pines implicados en Socket → **Identificar**.
 
 1. **Los códigos de SKU reales.** Los `TODO-` salen marcados en ámbar en la UI.
    Están en `../CableTester32App/bridge/seed.js`.
-2. **Reparar los dos golden del arnés grande**: al 1 le falta rehacer el crimp
-   de `M.J11↔L1.J14` (116 Ω); al 2 le falta el hilo `M.J05↔L1.J08`. El arnés
-   correcto tiene **46 conexiones** (96 canales − 4 libres = 92 = 46 parejas).
-3. **Recorrer el socket con la punta** (pestaña Socket) para que los informes
-   digan `CN15.3` en vez de `M.J11`.
+2. **HECHO (2026-09-29): socket mapeado y golden aprobado.**
+   `fixture-ARNES-GRANDE-v2` — 10 conectores, 92 pines, unidades **por MAC**
+   (M=2898, L1=700C, L2=424C). Golden `MPG-A1`, huella `3e223700`, 46 líneas,
+   job aprobado. Los informes dicen ya `CN9.4 ↔ CN13.7`.
+
+   El ruteo está **confirmado por dos piezas independientes**: el arnés 2 dio
+   45 de 46 coincidencias y **cero cortos**. Si el golden tuviera un cruce, lo
+   habría delatado con una pareja que falta y otra que sobra.
+
+   Ojo: los goldens vienen de arneses de **rechazo de cliente** (hilo sólido).
+   Valen como referencia de **ruteo**, que es lo que fija el mapa. No valen para
+   fijar umbrales de resistencia sin revisarlos a mano.
 
 ---
 
