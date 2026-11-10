@@ -37,7 +37,7 @@ static TCA9535* _unit(uint8_t a) {
     return nullptr;
 }
 
-// Lectura cruda del MUX en milivoltios, sin corregir la ganancia del ADC.
+// Lectura cruda del MUX en milivolts, sin corregir la ganancia del ADC.
 static int32_t _adcRead(uint8_t side, uint8_t ch) {
     if (!_sr || ch > 15 || side > 1) return RAW_ERR;
     _sr->selectMux(ch, side);

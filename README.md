@@ -48,7 +48,7 @@ medida (ver ESTADO.md §1).
 
 ```bash
 python tools/ct.py --list                 # equipos en la red (mDNS)
-python tools/ct.py --ota <ip> <fichero>   # actualizar firmware
+python tools/ct.py --ota <ip> <archivo>   # actualizar firmware
 python tools/ct.py <ip> "<comando>"       # consola
 
 python tools/sweep.py <ip1> <ip2> --modulos           # validar placas SIN arnés

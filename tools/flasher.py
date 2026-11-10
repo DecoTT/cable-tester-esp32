@@ -908,7 +908,7 @@ class FlasherApp:
 
             log("", "info")
             log(f"───── UNIDAD {idx}/{len(plan)}  →  rol {role.upper()} ─────", "info")
-            log("Conecta la unidad por USB y pulsa «Unidad conectada, continuar».", "warn")
+            log("Conecta la unidad por USB y presiona «Unidad conectada, continuar».", "warn")
 
             self.root.after(0, lambda: self.btn_batch_next.config(state="normal"))
             self._batch_go_evt.clear()

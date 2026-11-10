@@ -143,7 +143,7 @@ de la primera prueba fallida en
 ## 3.6 El botón físico — el equipo avisa, la PC mide
 
 Firmware **1.7.0**. Un pulsador entre **IO4 y GND** (normalmente abierto) en cada
-master. Al pulsarlo corre **la misma prueba que el botón de la pantalla**, con
+master. Al presionarlo corre **la misma prueba que el botón de la pantalla**, con
 el SKU y el operador que estén puestos.
 
 **El equipo NO prueba por su cuenta**, y esa fue la decisión de diseño:
@@ -164,11 +164,11 @@ El bridge sondea `/api/status` y, cuando el contador sube, lanza la prueba.
 va cada 400, así que con un booleano se perderían pulsaciones y una pulsación
 larga se leería como varias.
 
-### El SKU lo decide el EQUIPO que se pulsa
+### El SKU lo decide el EQUIPO que se presiona
 
-**Bug corregido (2026-09-27).** Se usaba `sku_activo` a secas, así que pulsar el
-botón de la 2898 corría el job de la 8744: el operador pulsaba en un puesto y se
-medía otro. Ahora se resuelve por la unidad que pulsó, con este orden:
+**Bug corregido (2026-09-27).** Se usaba `sku_activo` a secas, así que presionar el
+botón de la 2898 corría el job de la 8744: el operador presionaba en un puesto y se
+medía otro. Ahora se resuelve por la unidad que presionó, con este orden:
 
 1. El SKU que hay en pantalla — **solo si su job incluye ese equipo**.
 2. El último SKU corrido **en ese equipo** (por eso `tests.tester_mac` se rellena).
@@ -176,7 +176,7 @@ medía otro. Ahora se resuelve por la unidad que pulsó, con este orden:
 4. Si no se puede decidir: **avisa y no corre nada**. Arrancar el producto
    equivocado da un RECHAZADO que parece un defecto de la pieza.
 
-`GET /api/boton/estado` responde qué haría cada botón **sin pulsarlo**, y la
+`GET /api/boton/estado` responde qué haría cada botón **sin presionarlo**, y la
 ficha del equipo lo muestra.
 
 ### El cerrojo es por unidad, no global
@@ -187,7 +187,7 @@ por un problema que solo existe dentro de cada tester. Ahora se reservan los
 hosts del job — el arnés grande reserva sus tres unidades.
 
 El bridge necesita saber **qué producto y quién**: la pantalla los guarda en
-`settings` (`sku_activo`, `operador_activo`) porque el botón se pulsa aunque el
+`settings` (`sku_activo`, `operador_activo`) porque el botón se presiona aunque el
 navegador esté cerrado. Sin ellos no prueba — avisa y no inventa trazabilidad.
 
 > **Dos bridges NO comparten cerrojo.** Si hace falta una segunda instancia
@@ -294,7 +294,7 @@ haya más de cuatro, no antes.
 
 **Autónomo (sin PC):** sí, con dos condiciones. El equipo necesita su golden en
 la NVS (`push-job`) y el disparador en modo `local`. Entonces arranca solo, y al
-pulsar mide contra su golden y canta el veredicto en los LEDs — cinco verdes o
+presionar mide contra su golden y canta el veredicto en los LEDs — cinco verdes o
 la zona en rojo. No guarda historial: solo la última prueba en RAM, que la app
 puede recoger por `/api/test/last` cuando vuelva.
 
@@ -404,7 +404,7 @@ Cada una ve lo que las otras no:
 
 | Barrera | Detecta |
 |---|---|
-| `--modulos` | Canales pegados a masa en las placas |
+| `--modulos` | Canales pegados a tierra (GND) en las placas |
 | Resistencia | Contactos flojos que el mapa da por buenos |
 | `--esperadas` | Hilos que **faltan** (una línea ausente no tiene R que medir) |
 

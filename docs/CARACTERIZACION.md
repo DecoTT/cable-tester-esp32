@@ -239,7 +239,7 @@ python tools/sweep.py 192.168.1.90 192.168.1.96 --check goldens/SKU1234.json
 parsear texto.
 
 El golden guarda las **unidades y su orden**, porque el orden define los nombres
-de canal: el mismo fichero con las unidades al revés no significa lo mismo. Si
+de canal: el mismo archivo con las unidades al revés no significa lo mismo. Si
 el montaje no coincide en número de canales, se rechaza antes de medir.
 
 ### Se comparan conexiones, no nets
@@ -288,7 +288,7 @@ python tools/sweep.py <ip1> <ip2> <ip3> --modulos    # arnés DESCONECTADO
 ```
 
 Código de salida 0 si todos los canales están sanos, 1 si alguno está pegado a
-masa.
+tierra.
 
 **Por qué es bloqueante y no un aviso:** en el mapa, un canal pegado a GND y un
 cable roto se ven **exactamente igual** — los dos salen como "aislado". Si se
@@ -514,8 +514,14 @@ L2.J05   1041 mV
 L2.J06    697 mV
 ```
 
-El umbral de **2900 mV** cae en el hueco, con más de 750 mV de margen a cada
-lado. Y `L2.J04` a 2133 mV explica el resto: está **a un pelo** del umbral
+El umbral de **2900 mV** cae en el hueco, pero **el margen no es simétrico**:
+767 mV por debajo hasta el vecino acoplado (2133 mV) y 400 mV por encima hasta
+la punta (3300 mV). El lado estrecho es el de arriba.
+
+> Esto decía antes «más de 750 mV de margen a cada lado», y era falso:
+> 3300 − 2900 = 400. Lo encontró otra sesión haciendo la resta, 2026-11-10.
+
+Y `L2.J04` a 2133 mV explica el resto: está **a un pelo** del umbral
 lógico del TCA9535 (~2,3 V). En ese pin no llegó a cruzarlo y el muestreo
 digital ya lo descartó; en conectores con tiradas más largas en paralelo sí
 cruza, y entonces solo la tensión lo separa.
@@ -548,7 +554,7 @@ también media tensión**, y eso no es un fantasma — es un defecto. Descartarl
 silencio sería esconder justo lo que se busca.
 
 Lo que los separa es que el acoplamiento es **capacitivo: no hay camino de
-continua**. Así que el candidato dudoso se fuerza a masa y se mira si puede
+continua**. Así que el candidato dudoso se fuerza a tierra y se mira si puede
 bajarlo. Y la tensión que queda dice **cuánto vale la unión**, porque el nodo es
 un divisor con los 680 Ω del propio canal:
 
@@ -558,7 +564,7 @@ R = 680 · (3,3/V − 1)
 
 **Validado en los tres regímenes (2026-09-29):**
 
-| Caso | En reposo | Forzado a masa | Veredicto |
+| Caso | En reposo | Forzado a tierra | Veredicto |
 |---|---|---|---|
 | Punta de 3,3 V (fuente rígida) | 3300 mV | **3300 mV** | unido, R ≈ 0 Ω |
 | Enlace real a través de 680 Ω | 3300 mV | **1778 mV** | unido, R ≈ 582 Ω |
@@ -571,14 +577,14 @@ excitando a través de sus propios 680 Ω, así que la cuenta mide ese resistor.
 Con una punta real, que no lleva nada en serie, el número es el del puente.
 
 > **El mismo error, en vivo.** Un barrido hecho a mano con un umbral ingenuo de
-> 2000 mV dio `J01 → J17 y J18`. Con el test: `J17` forzado a masa se queda en
+> 2000 mV dio `J01 → J17 y J18`. Con el test: `J17` forzado a tierra se queda en
 > 1777 mV (unido), `J18` cae a 3 mV (nunca estuvo conectado). El barrido real de
 > la app no cae en esto porque usa doble muestra; el que se equivocó fue el
 > script de una línea.
 
 ### Y un tercer fallo, del mismo patrón: escuchar antes de abrir el conector
 
-La sesión empieza a escuchar al pulsar **Escuchar**, y el conector se abre
+La sesión empieza a escuchar al presionar **Escuchar**, y el conector se abre
 después — lo que se tarda en teclear su nombre. Si en ese hueco la punta estaba
 tocando algo, el canal se marcaba como visto y quedaba **gastado**: al abrir el
 conector ya no se podía detectar nunca.

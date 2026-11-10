@@ -32,7 +32,7 @@ enum RawOp : uint8_t {
     RAW_IO_WR    = 0x02,  // a = 0:U1 1:U2   b = valor a escribir
     RAW_IO_RD    = 0x03,  // a = 0:U1 1:U2   → valor leído (16 bits)
     RAW_SR_WR    = 0x04,  //                 b = 16 bits crudos (LEDs + MUX)
-    RAW_ADC_RD   = 0x05,  // a = 0:CN1 1:CN2 b = canal 0-15 → milivoltios crudos
+    RAW_ADC_RD   = 0x05,  // a = 0:CN1 1:CN2 b = canal 0-15 → milivolts crudos
     RAW_DELAY_US = 0x06,  //                 b = microsegundos
     RAW_I2C_RD   = 0x07,  // a = dirección   b = registro → byte
     RAW_I2C_WR   = 0x08,  // a = dirección   b = (registro << 8) | valor

@@ -228,7 +228,7 @@ def report(nets, isolated, units):
 def save_golden(path, nets, isolated, units):
     """Guarda el golden en la PC.
 
-    La fuente de verdad es este fichero, NO el ESP32: si una unidad se borra o
+    La fuente de verdad es este archivo, NO el ESP32: si una unidad se borra o
     se cambia, el golden sigue aqui. Se guarda tambien la configuracion de
     unidades porque el ORDEN define los nombres de canal — un golden con las
     unidades en otro orden no significa lo mismo.
@@ -324,7 +324,7 @@ def validar_modulos(units):
     referencia y el tester deja de vigilar esas lineas PARA SIEMPRE.
 
     Cada canal se excita en alto con todo lo demas en alta impedancia. Un canal
-    sano llega al riel (3.3 V); uno pegado a masa se hunde.
+    sano llega al riel (3.3 V); uno pegado a tierra se hunde.
     """
     from analog import set_line, mv, leak_ohm, locate, LEAK_OK_V
     malos = []

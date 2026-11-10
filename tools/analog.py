@@ -47,7 +47,7 @@ LEAK_OK_V = 3.00   # por encima de esto, sin fuga
 
 
 def mv(unit, local_ch):
-    """Lee el ADC del canal local, en voltios. Crudo, sin corregir ganancia."""
+    """Lee el ADC del canal local, en volts. Crudo, sin corregir ganancia."""
     side = 0 if local_ch < 16 else 1
     ch = local_ch % 16
     r = unit.raw([f"adc_rd {side} {ch}"])[0]

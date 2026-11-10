@@ -199,7 +199,7 @@ Por serial: `leds <unidad> <mask>` · `leds off` · `led_mode auto|manual`.
 ### Disparador físico — ✅ IMPLEMENTADO
 
 Un switch en un GPIO equivale al botón de prueba de la app. En producción el operador
-conecta el arnés y pulsa sin volver a la PC. Queda registrado igual que un clic: la prueba
+conecta el arnés y presiona sin volver a la PC. Queda registrado igual que un clic: la prueba
 incrementa `last_test.seq` y la app la recoge.
 
 ```
@@ -260,7 +260,7 @@ derivación da otros nombres. Por eso vive en la PC, como parte de la definició
 
 Consecuencia importante: **cada fixture necesita su propio golden y su propia tabla de
 etiquetas.** El arnés soldado a contras y el de PCB dan mapas distintos; compararlos
-cruzados produciría fallos falsos en masa.
+cruzados produciría fallos falsos en tierra.
 
 ---
 
